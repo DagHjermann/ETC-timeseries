@@ -1,0 +1,138 @@
+---
+title: "0010_Test1"
+format: html
+editor: visual
+---
+
+## Packages
+
+```{r}
+
+library(dplyr)
+library(readxl)
+library(ggplot2)
+
+```
+
+## Data
+
+```{r}
+
+dat <- readxl::read_excel(
+  "Input_data/WISE_Indicators.indicators2020.AggregatedData_Indicator_GWNO3.xlsx", 
+  col_types = "text", na = "NULL")
+
+```
+
+### Fix numeric variables  
+
+```{r}
+
+dat <- dat %>%
+  mutate(
+    year = as.numeric(phenomenonTimeReferenceYear), 
+    value = as.numeric(resultMeanValue)
+  )
+
+```
+
+## Checking 
+
+### Countries / stations
+
+```{r}
+
+table(dat$countryCode) %>% sort(decreasing = TRUE)
+
+tab <- table(dat$monitoringSiteIdentifier)
+length(tab)
+hist(tab, main = "Number of years (1)")
+
+tab <- dat %>%
+  filter(!is.na(value)) %>%
+  xtabs(~ monitoringSiteIdentifier, .)
+hist(tab, main = "Number of years (2)")
+
+```
+
+## Water bodies etc.
+
+```{r}
+
+tab <- table(dat$waterBodyIdentifier)
+length(tab)
+
+tab <- table(dat$waterBodyName)
+length(tab)
+
+tab <- table(dat$waterBodyCategory)
+length(tab)   # just 1, ie. "GW"
+
+tab <- table(dat$rbdIdentifier)
+length(tab)
+
+tab <- table(dat$rbdName)
+length(tab)
+
+tab <- table(dat$spatialUnitIdentifier)
+length(tab)
+
+tab <- table(dat$spatialUnitName)
+length(tab)
+
+```
+
+### Number of sites per water body  
+
+```{r}
+
+dat %>%
+  distinct(monitoringSiteIdentifier, waterBodyIdentifier) %>%
+  count(waterBodyIdentifier) %>%
+  ggplot(aes(n)) +
+  geom_histogram()  
+
+```
+
+### Number water bodies per rbdName  
+
+```{r}
+
+dat %>%
+  distinct(waterBodyIdentifier, rbdName) %>%
+  count(rbdName) %>%
+  ggplot(aes(n)) +
+  geom_histogram()  
+
+```
+
+### 
+
+### Parameters  
+
+```{r}
+table(dat$eeaIndicator)
+table(dat$resultUom)
+
+```
+
+### Time series  
+
+```{r}
+
+# monitoringSiteIdentifier
+tab <- table(dat$monitoringSiteIdentifier)
+site <- tab[tab >= 10][1] %>% names()
+
+gg <- dat %>%
+  filter(monitoringSiteIdentifier %in% site) %>%
+  ggplot(aes(year, value)) +
+  geom_smooth(span = 0.9) +
+  geom_point() +
+  labs(title = site)
+
+gg
+
+gg + scale_y_log10()
+
+```
